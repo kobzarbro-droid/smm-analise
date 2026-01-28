@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Аналітика - Instagram SMM Аналітика{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold">Аналітика</h1>
+        <p class="lead text-muted">Детальна аналітика метрик та показників</p>
+    </div>
+</div>
+
+<!-- Period Selector -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <label class="form-label">Період аналізу</label>
+        <select class="form-select" id="analyticsPeriod">
+            <option value="7d">7 днів</option>
+            <option value="30d" {% if period == '30d' %}selected{% endif %}>30 днів</option>
+            <option value="90d">90 днів</option>
+        </select>
+    </div>
+    <div class="col-md-6 text-end">
+        <label class="form-label d-block">&nbsp;</label>
+        <button class="btn btn-primary" onclick="refreshCharts()">
+            <i class="bi bi-arrow-clockwise"></i> Оновити дані
+        </button>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <!-- Followers Growth -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people-fill"></i> Зростання підписників</h5>
+            </div>
+            <div class="card-body">
+                <div id="followersChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reach & Impressions -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-eye-fill"></i> Охоплення та покази</h5>
+            </div>
+            <div class="card-body">
+                <div id="reachChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Engagement Rate -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-heart-fill"></i> Engagement Rate</h5>
+            </div>
+            <div class="card-body">
+                <div id="engagementRateChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Likes & Comments -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Лайки та коментарі</h5>
+            </div>
+            <div class="card-body">
+                <div id="likesCommentsChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Posts -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-trophy-fill"></i> Найкращі публікації за engagement</h5>
+            </div>
+            <div class="card-body">
+                <div id="topPostsChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hashtags Analysis -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-hash"></i> Топ хештеги</h5>
+            </div>
+            <div class="card-body">
+                <div id="hashtagsList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-fire"></i> Трендові хештеги</h5>
+            </div>
+            <div class="card-body">
+                <div id="trendingHashtags"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    let currentPeriod = '{{ period }}';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAllCharts();
+        
+        document.getElementById('analyticsPeriod').addEventListener('change', function(e) {
+            currentPeriod = e.target.value;
+            loadAllCharts();
+        });
+    });
+    
+    async function loadAllCharts() {
+        await Promise.all([
+            loadFollowersChart(),
+            loadReachChart(),
+            loadEngagementRateChart(),
+            loadLikesCommentsChart(),
+            loadTopPostsChart(),
+            loadHashtags()
+        ]);
+    }
+    
+    async function loadFollowersChart() {
+        showLoading('followersChart');
+        try {
+            const response = await fetch(`/api/metrics?period=${currentPeriod}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            createFollowersChart('followersChart', data);
+        } catch (error) {
+            showError('followersChart', 'Помилка завантаження даних');
+            console.error(error);
+        }
+    }
+    
+    async function loadReachChart() {
+        showLoading('reachChart');
+        try {
+            const response = await fetch(`/api/metrics?period=${currentPeriod}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            createReachChart('reachChart', data);
+        } catch (error) {
+            showError('reachChart', 'Помилка завантаження даних');
+            console.error(error);
+        }
+    }
+    
+    async function loadEngagementRateChart() {
+        showLoading('engagementRateChart');
+        try {
+            const response = await fetch(`/api/metrics?period=${currentPeriod}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            createEngagementRateChart('engagementRateChart', data);
+        } catch (error) {
+            showError('engagementRateChart', 'Помилка завантаження даних');
+            console.error(error);
+        }
+    }
+    
+    async function loadLikesCommentsChart() {
+        showLoading('likesCommentsChart');
+        try {
+            const response = await fetch(`/api/engagement?period=${currentPeriod}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            createLikesCommentsChart('likesCommentsChart', data);
+        } catch (error) {
+            showError('likesCommentsChart', 'Помилка завантаження даних');
+            console.error(error);
+        }
+    }
+    
+    async function loadTopPostsChart() {
+        showLoading('topPostsChart');
+        try {
+            const response = await fetch(`/api/top-posts?period=${currentPeriod}&limit=10`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            createTopPostsChart('topPostsChart', data);
+        } catch (error) {
+            showError('topPostsChart', 'Помилка завантаження даних');
+            console.error(error);
+        }
+    }
+    
+    async function loadHashtags() {
+        try {
+            const response = await fetch('/api/hashtags?limit=20');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            
+            displayHashtags('hashtagsList', data.top_hashtags);
+            displayHashtags('trendingHashtags', data.trending);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+    
+    function displayHashtags(elementId, hashtags) {
+        const element = document.getElementById(elementId);
+        if (!hashtags || hashtags.length === 0) {
+            element.innerHTML = '<p class="text-muted text-center">Немає даних</p>';
+            return;
+        }
+        
+        let html = '<div class="list-group list-group-flush">';
+        hashtags.forEach((tag, index) => {
+            const engagement = tag.avg_engagement !== undefined ? `${tag.avg_engagement.toFixed(1)}% ER` : '';
+            const score = tag.trend_score !== undefined ? `Score: ${tag.trend_score}` : '';
+            const usage = tag.usage_count !== undefined ? `${tag.usage_count} разів` : '';
+            
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-primary me-2">${index + 1}</span>
+                        <strong>${tag.tag}</strong>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block">${usage}</small>
+                        <small class="text-muted">${engagement || score}</small>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        element.innerHTML = html;
+    }
+    
+    function refreshCharts() {
+        loadAllCharts();
+    }
+</script>
+{% endblock %}

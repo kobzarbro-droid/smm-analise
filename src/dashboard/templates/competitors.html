@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Конкуренти - Instagram SMM Аналітика{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold">Аналіз конкурентів</h1>
+        <p class="lead text-muted">Порівняння показників з конкурентами</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> Помилка: {{ error }}
+</div>
+{% else %}
+
+<!-- Comparison Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people-fill"></i> Порівняння підписників</h5>
+            </div>
+            <div class="card-body">
+                <div id="followersComparisonChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-heart-fill"></i> Порівняння engagement rate</h5>
+            </div>
+            <div class="card-body">
+                <div id="engagementComparisonChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Активність публікацій</h5>
+            </div>
+            <div class="card-body">
+                <div id="postsActivityChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Competitors Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Детальна таблиця</h5>
+            </div>
+            <div class="card-body">
+                {% if competitors %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Користувач</th>
+                                <th>Підписники</th>
+                                <th>Engagement Rate</th>
+                                <th>Публікацій/тиждень</th>
+                                <th>Середні лайки</th>
+                                <th>Середні коментарі</th>
+                                <th>Остання аналіз</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comp in competitors %}
+                            <tr>
+                                <td>
+                                    <strong>@{{ comp.username }}</strong>
+                                </td>
+                                <td>{{ comp.followers_count | format_number }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ "%.1f"|format(comp.avg_engagement_rate) }}%</span>
+                                </td>
+                                <td>{{ comp.posts_per_week }}</td>
+                                <td>{{ comp.avg_likes | format_number }}</td>
+                                <td>{{ comp.avg_comments | format_number }}</td>
+                                <td>
+                                    <small class="text-muted">
+                                        {% if comp.last_analyzed %}
+                                            {{ comp.last_analyzed.strftime('%d.%m.%Y') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> Немає даних про конкурентів. Додайте конкурентів в налаштуваннях.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        await loadCompetitorsData();
+    });
+    
+    async function loadCompetitorsData() {
+        try {
+            const response = await fetch('/api/competitors-comparison');
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            if (data.usernames && data.usernames.length > 0) {
+                createFollowersComparisonChart('followersComparisonChart', data);
+                createEngagementComparisonChart('engagementComparisonChart', data);
+                createPostsActivityChart('postsActivityChart', data);
+            } else {
+                ['followersComparisonChart', 'engagementComparisonChart', 'postsActivityChart'].forEach(id => {
+                    document.getElementById(id).innerHTML = '<p class="text-muted text-center">Немає даних для відображення</p>';
+                });
+            }
+        } catch (error) {
+            console.error('Error loading competitors data:', error);
+            ['followersComparisonChart', 'engagementComparisonChart', 'postsActivityChart'].forEach(id => {
+                showError(id, 'Помилка завантаження даних');
+            });
+        }
+    }
+</script>
+{% endblock %}

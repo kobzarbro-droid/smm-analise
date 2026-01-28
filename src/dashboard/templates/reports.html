@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Звіти - Instagram SMM Аналітика{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold">Звіти</h1>
+        <p class="lead text-muted">Генерація та експорт аналітичних звітів</p>
+    </div>
+</div>
+
+<!-- Report Generation -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-bar-graph text-primary" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Тижневий звіт</h5>
+                <p class="text-muted">Аналітика за останні 7 днів</p>
+                <button class="btn btn-primary" onclick="generateReport('7d')">
+                    <i class="bi bi-download"></i> Згенерувати звіт
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text text-success" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Місячний звіт</h5>
+                <p class="text-muted">Детальна аналітика за місяць</p>
+                <button class="btn btn-success" onclick="generateReport('30d')">
+                    <i class="bi bi-download"></i> Згенерувати звіт
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-chart text-info" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">Квартальний звіт</h5>
+                <p class="text-muted">Повний аналіз за 90 днів</p>
+                <button class="btn btn-info" onclick="generateReport('90d')">
+                    <i class="bi bi-download"></i> Згенерувати звіт
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Display -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Останній згенерований звіт</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="exportReportPDF()">
+                    <i class="bi bi-file-pdf"></i> Експорт PDF
+                </button>
+            </div>
+            <div class="card-body" id="reportContent">
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-file-earmark" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Оберіть період та згенеруйте звіт</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-box-arrow-down"></i> Експорт даних</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <h6>Публікації</h6>
+                        <div class="btn-group w-100">
+                            <a href="/api/export/posts?period=7d" class="btn btn-outline-success">7д</a>
+                            <a href="/api/export/posts?period=30d" class="btn btn-outline-success">30д</a>
+                            <a href="/api/export/posts?period=90d" class="btn btn-outline-success">90д</a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Статистика</h6>
+                        <div class="btn-group w-100">
+                            <a href="/api/export/stats?period=7d" class="btn btn-outline-success">7д</a>
+                            <a href="/api/export/stats?period=30d" class="btn btn-outline-success">30д</a>
+                            <a href="/api/export/stats?period=90d" class="btn btn-outline-success">90д</a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Повний експорт</h6>
+                        <button class="btn btn-success w-100" onclick="exportAll()">
+                            <i class="bi bi-download"></i> Завантажити все
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Завантаження...</span>
+                </div>
+                <h5>Генерація звіту...</h5>
+                <p class="text-muted">Будь ласка, зачекайте</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentReport = null;
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    async function generateReport(period) {
+        loadingModal.show();
+        
+        try {
+            const response = await fetch('/api/generate-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ period })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            currentReport = data;
+            displayReport(data);
+            
+        } catch (error) {
+            alert('Помилка генерації звіту: ' + error.message);
+            console.error(error);
+        } finally {
+            loadingModal.hide();
+        }
+    }
+    
+    function displayReport(report) {
+        const container = document.getElementById('reportContent');
+        
+        const periodNames = {
+            '7d': '7 днів',
+            '30d': '30 днів',
+            '90d': '90 днів'
+        };
+        
+        let html = `
+            <div class="report-header mb-4 pb-3 border-bottom">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3>Аналітичний звіт</h3>
+                        <p class="text-muted">Період: ${periodNames[report.period] || report.period}</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <p class="text-muted mb-0">Згенеровано:</p>
+                        <p><strong>${report.generated_at}</strong></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-summary mb-4">
+                <h4 class="mb-3">Загальна статистика</h4>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="text-muted">Публікації</h6>
+                            <h3>${report.summary.total_posts}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="text-muted">Engagement Rate</h6>
+                            <h3>${report.summary.avg_engagement.toFixed(1)}%</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="text-muted">Лайки</h6>
+                            <h3>${formatNumber(report.summary.total_likes)}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="text-muted">Коментарі</h6>
+                            <h3>${formatNumber(report.summary.total_comments)}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-top-posts mb-4">
+                <h4 class="mb-3">Топ-5 публікацій</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Post ID</th>
+                                <th>Engagement Rate</th>
+                                <th>Лайки</th>
+                                <th>Коментарі</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        report.top_posts.forEach((post, index) => {
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><code>${post.post_id}</code></td>
+                    <td><span class="badge bg-success">${post.engagement_rate.toFixed(1)}%</span></td>
+                    <td>${post.likes}</td>
+                    <td>${post.comments}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="report-insights">
+                <h4 class="mb-3">Ключові висновки</h4>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Зріст підписників: <strong>${report.summary.follower_growth >= 0 ? '+' : ''}${report.summary.follower_growth}</strong>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Середній engagement rate: <strong>${report.summary.avg_engagement.toFixed(1)}%</strong>
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Всього публікацій: <strong>${report.summary.total_posts}</strong>
+                    </li>
+                </ul>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+    }
+    
+    function exportReportPDF() {
+        if (!currentReport) {
+            alert('Спочатку згенеруйте звіт');
+            return;
+        }
+        alert('Експорт у PDF - функція в розробці');
+    }
+    
+    function exportAll() {
+        if (confirm('Завантажити всі дані (публікації + статистика за 90 днів)?')) {
+            window.open('/api/export/posts?period=90d', '_blank');
+            setTimeout(() => {
+                window.open('/api/export/stats?period=90d', '_blank');
+            }, 500);
+        }
+    }
+</script>
+{% endblock %}
