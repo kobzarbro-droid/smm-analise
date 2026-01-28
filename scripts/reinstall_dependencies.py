@@ -6,13 +6,21 @@ import sys
 
 def main():
     print("🔄 Removing old dependencies...")
-    subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "instagrapi", "pydantic"])
+    result = subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "instagrapi", "pydantic"])
+    if result.returncode != 0:
+        print("⚠️  Warning: Failed to uninstall some packages (may not be installed)")
     
     print("🧹 Clearing pip cache...")
-    subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
+    result = subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
+    if result.returncode != 0:
+        print("❌ Error: Failed to clear pip cache")
+        sys.exit(1)
     
     print("📦 Installing new dependencies...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade", "--force-reinstall"])
+    result = subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade", "--force-reinstall"])
+    if result.returncode != 0:
+        print("❌ Error: Failed to install dependencies")
+        sys.exit(1)
     
     print("✅ Done!")
 

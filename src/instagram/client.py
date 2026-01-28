@@ -128,15 +128,19 @@ class InstagramClient:
         """
         try:
             target_username = username or self.username
+            user_id = None
             
             # Use ONLY V1 API
             try:
                 user_id = self.get_user_id(target_username)
                 user = self.client.user_info_v1(user_id)
             except Exception as e:
-                logger.warning(f"V1 API failed, trying user_info: {e}")
-                # Fallback to standard method
-                user = self.client.user_info(user_id)
+                if user_id:
+                    logger.warning(f"V1 API failed, trying user_info: {e}")
+                    # Fallback to standard method
+                    user = self.client.user_info(user_id)
+                else:
+                    raise
             
             return {
                 'user_id': user.pk,
@@ -304,16 +308,16 @@ class InstagramClient:
     def _is_reel_dict(self, media_dict: dict) -> bool:
         """Check if media dict represents a reel."""
         try:
-            # Check media_type for video
-            if media_dict.get('media_type', 0) != 2:
-                return False
-            
-            # Check if it's marked as reel
+            # First check if it's explicitly marked as a reel
             if media_dict.get('is_reel', False):
                 return True
             
-            # Video with high engagement could be a reel
-            return media_dict.get('view_count', 0) > 0 or media_dict.get('play_count', 0) > 0
+            # Check if media_type is video (as string)
+            if media_dict.get('media_type') != 'video':
+                return False
+            
+            # Videos with play_count are likely reels
+            return media_dict.get('play_count', 0) > 0
         except Exception:
             return False
     
@@ -353,6 +357,21 @@ class InstagramClient:
             except:
                 return None
     
+    def _extract_media_urls(self, media_obj) -> tuple:
+        """Extract URLs safely from media object."""
+        thumbnail_url = None
+        media_url = None
+        try:
+            if hasattr(media_obj, 'thumbnail_url') and media_obj.thumbnail_url:
+                thumbnail_url = str(media_obj.thumbnail_url)
+            if hasattr(media_obj, 'video_url') and media_obj.video_url:
+                media_url = str(media_obj.video_url)
+            elif thumbnail_url:
+                media_url = thumbnail_url
+        except Exception as e:
+            logger.warning(f"Error extracting media URLs: {e}")
+        return thumbnail_url, media_url
+    
     def _media_to_dict(self, media, is_reel: bool = False) -> Optional[Dict[str, Any]]:
         """Convert Media object to dictionary with safe extraction to avoid Pydantic errors."""
         try:
@@ -379,7 +398,8 @@ class InstagramClient:
             try:
                 product_type = getattr(media, 'product_type', '')
                 is_reel_flag = (product_type == 'clips') or is_reel
-            except:
+            except Exception as e:
+                logger.warning(f"Error checking reel flag: {e}")
                 is_reel_flag = is_reel
             
             # Calculate engagement rate
@@ -387,24 +407,14 @@ class InstagramClient:
             engagement_rate = (engagement / max(view_count or play_count or 1, 1)) * 100 if (view_count or play_count) else 0
             
             # Extract URLs safely
-            thumbnail_url = None
-            media_url = None
-            try:
-                if hasattr(media, 'thumbnail_url') and media.thumbnail_url:
-                    thumbnail_url = str(media.thumbnail_url)
-                if hasattr(media, 'video_url') and media.video_url:
-                    media_url = str(media.video_url)
-                elif thumbnail_url:
-                    media_url = thumbnail_url
-            except:
-                pass
+            thumbnail_url, media_url = self._extract_media_urls(media)
             
             data = {
                 'post_id': str(getattr(media, 'pk', '')),
                 'media_type': 'reel' if is_reel_flag else media_type,
                 'caption': caption_text or '',
                 'hashtags': hashtags,
-                'posted_at': getattr(media, 'taken_at', datetime.now()),
+                'posted_at': getattr(media, 'taken_at', None),
                 'likes_count': like_count,
                 'comments_count': comment_count,
                 'engagement_rate': round(engagement_rate, 2),
@@ -412,6 +422,11 @@ class InstagramClient:
                 'media_url': media_url,
                 'is_reel': is_reel_flag,
             }
+            
+            # Warn if posted_at is missing
+            if data['posted_at'] is None:
+                logger.warning(f"Media {data['post_id']} missing taken_at timestamp")
+                data['posted_at'] = datetime.now()
             
             # Add reel/video-specific fields
             if is_reel_flag or media_type == 'video':
@@ -431,20 +446,13 @@ class InstagramClient:
             media_type_map = {1: 'photo', 2: 'video'}
             media_type_value = getattr(story, 'media_type', 0)
             
-            taken_at = getattr(story, 'taken_at', datetime.now())
+            taken_at = getattr(story, 'taken_at', None)
+            if taken_at is None:
+                logger.warning(f"Story {getattr(story, 'pk', 'unknown')} missing taken_at timestamp")
+                taken_at = datetime.now()
             
             # Extract URLs safely
-            thumbnail_url = None
-            media_url = None
-            try:
-                if hasattr(story, 'thumbnail_url') and story.thumbnail_url:
-                    thumbnail_url = str(story.thumbnail_url)
-                if hasattr(story, 'video_url') and story.video_url:
-                    media_url = str(story.video_url)
-                elif thumbnail_url:
-                    media_url = thumbnail_url
-            except:
-                pass
+            thumbnail_url, media_url = self._extract_media_urls(story)
             
             return {
                 'story_id': str(getattr(story, 'pk', '')),
