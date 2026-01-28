@@ -312,3 +312,34 @@ class DataCollector:
     def close(self):
         """Close repository connection."""
         self.repository.close()
+    
+    def _safe_extract_media(self, media) -> Optional[dict]:
+        """Безпечне вилучення даних з media об'єкту"""
+        try:
+            return {
+                'id': getattr(media, 'id', None),
+                'code': getattr(media, 'code', None),
+                'taken_at': getattr(media, 'taken_at', None),
+                'media_type': getattr(media, 'media_type', 0),
+                'caption_text': getattr(media, 'caption_text', ''),
+                'like_count': getattr(media, 'like_count', 0),
+                'comment_count': getattr(media, 'comment_count', 0),
+                'view_count': getattr(media, 'view_count', 0),
+                'play_count': getattr(media, 'play_count', 0),
+                # Безпечне вилучення clips_metadata
+                'is_reel': self._is_reel_safe(media),
+            }
+        except Exception as e:
+            logger.warning(f"Failed to extract media data: {e}")
+            return None
+
+    def _is_reel_safe(self, media) -> bool:
+        """Перевірити чи це рил з безпечною обробкою"""
+        try:
+            return (hasattr(media, 'product_type') and 
+                    media.product_type == 'clips') or \
+                   (hasattr(media, 'media_type') and 
+                    media.media_type == 2 and 
+                    hasattr(media, 'clips_metadata'))
+        except:
+            return False
