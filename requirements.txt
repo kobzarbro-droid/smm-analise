@@ -1,0 +1,27 @@
+# Core dependencies
+instagrapi>=1.16.60
+python-telegram-bot>=20.7
+openai>=1.6.1
+
+# Database
+sqlalchemy>=2.0.23
+alembic>=1.13.1
+pandas>=2.1.4
+
+# Scheduling
+apscheduler>=3.10.4
+
+# Web
+flask>=3.0.0
+flask-cors>=4.0.0
+plotly>=5.18.0
+
+# Utils
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+requests>=2.31.0
+pillow>=10.1.0
+
+# Additional utilities
+python-dateutil>=2.8.2
+pytz>=2023.3
