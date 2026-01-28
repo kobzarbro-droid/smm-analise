@@ -72,6 +72,7 @@ class Settings:
     def validate(cls) -> None:
         """Validate required settings."""
         errors = []
+        warnings = []
         
         # Check required Instagram credentials
         if not cls.INSTAGRAM_USERNAME:
@@ -98,8 +99,19 @@ class Settings:
         if cls.LOG_LEVEL.upper() not in valid_log_levels:
             errors.append(f"LOG_LEVEL must be one of {valid_log_levels}")
         
+        # Security check for Flask secret key
+        if cls.FLASK_SECRET_KEY == "dev-secret-key-change-in-production":
+            warnings.append("WARNING: Using default FLASK_SECRET_KEY. Change this in production!")
+        
         if errors:
             raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+        
+        # Print warnings
+        if warnings:
+            import logging
+            logger = logging.getLogger(__name__)
+            for warning in warnings:
+                logger.warning(warning)
         
         # Ensure directories exist
         cls.ensure_directories()

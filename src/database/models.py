@@ -1,10 +1,10 @@
 """SQLAlchemy models for SMM Analytics System."""
 
-from datetime import datetime
+from datetime import datetime, timezone, date
 from typing import Optional
 from sqlalchemy import (
     Integer, String, Text, Float, DateTime, Date, Enum,
-    ForeignKey, Index, CheckConstraint
+    ForeignKey, Index, CheckConstraint, func
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import enum
@@ -44,7 +44,7 @@ class Post(Base):
     views: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     reach: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     posted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     ai_recommendations: Mapped[list["AIRecommendation"]] = relationship(
@@ -75,7 +75,7 @@ class Story(Base):
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     replies: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     posted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     ai_recommendations: Mapped[list["AIRecommendation"]] = relationship(
@@ -109,7 +109,7 @@ class Reel(Base):
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     plays: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     posted_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     ai_recommendations: Mapped[list["AIRecommendation"]] = relationship(
@@ -135,7 +135,7 @@ class DailyStat(Base):
     __tablename__ = "daily_stats"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    date: Mapped[datetime] = mapped_column(Date, unique=True, nullable=False, index=True)
+    date: Mapped[date] = mapped_column(Date, unique=True, nullable=False, index=True)
     posts_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     stories_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     reels_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -143,7 +143,7 @@ class DailyStat(Base):
     total_comments: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     engagement_rate: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     __table_args__ = (
         Index("idx_daily_stats_date", "date"),
@@ -165,7 +165,7 @@ class AIRecommendation(Base):
     analysis: Mapped[str] = mapped_column(Text, nullable=False)
     recommendations: Mapped[str] = mapped_column(Text, nullable=False)
     score: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships (viewonly to avoid conflicts)
     post: Mapped[Optional["Post"]] = relationship(
@@ -215,7 +215,7 @@ class Competitor(Base):
     posts_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     avg_engagement: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     __table_args__ = (
         Index("idx_competitors_username", "username"),
@@ -240,7 +240,7 @@ class Hashtag(Base):
     avg_likes: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     avg_comments: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     effectiveness_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     __table_args__ = (
         Index("idx_hashtags_tag", "tag"),

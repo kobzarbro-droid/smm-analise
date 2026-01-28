@@ -99,12 +99,14 @@ class Repository:
             model: Model instance to update
             
         Returns:
-            Updated model instance
+            Updated model instance (detached from session)
         """
         with self.get_session() as session:
-            session.merge(model)
-            session.flush()
-            return model
+            merged = session.merge(model)
+            session.commit()
+            session.refresh(merged)
+            session.expunge(merged)
+        return merged
     
     def delete(self, model: T) -> None:
         """Delete a record.
@@ -113,7 +115,10 @@ class Repository:
             model: Model instance to delete
         """
         with self.get_session() as session:
-            session.delete(model)
+            # Re-attach the model to this session
+            merged = session.merge(model)
+            session.delete(merged)
+            session.commit()
     
     # Post operations
     
