@@ -1,5 +1,6 @@
 # Core dependencies
-instagrapi>=1.16.60
+instagrapi==2.1.2
+pydantic==2.7.1
 python-telegram-bot>=20.7
 openai>=1.6.1
 
