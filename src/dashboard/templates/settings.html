@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Налаштування - Instagram SMM Аналітика{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold">Налаштування</h1>
+        <p class="lead text-muted">Конфігурація системи та цілей</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Targets Configuration -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bullseye"></i> Цілі та таргети</h5>
+            </div>
+            <div class="card-body">
+                <form id="targetsForm">
+                    <div class="mb-3">
+                        <label class="form-label">Ціль за підписниками (місяць)</label>
+                        <input type="number" class="form-control" name="followers_target" value="10000">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Ціль Engagement Rate (%)</label>
+                        <input type="number" class="form-control" step="0.1" name="engagement_target" value="5.0">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Публікацій на тиждень</label>
+                        <input type="number" class="form-control" name="posts_per_week" value="7">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Stories на день</label>
+                        <input type="number" class="form-control" name="stories_per_day" value="3">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reels на тиждень</label>
+                        <input type="number" class="form-control" name="reels_per_week" value="3">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Зберегти цілі
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Account Configuration -->
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-instagram"></i> Instagram акаунт</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" value="@your_username" readonly>
+                    <small class="text-muted">Налаштовується через змінні середовища</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Статус з'єднання</label>
+                    <div>
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Підключено
+                        </span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline-primary" onclick="testConnection()">
+                    <i class="bi bi-arrow-repeat"></i> Перевірити з'єднання
+                </button>
+            </div>
+        </div>
+        
+        <!-- Competitors Configuration -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Конкуренти для аналізу</h5>
+            </div>
+            <div class="card-body">
+                <form id="competitorsForm">
+                    <div class="mb-3">
+                        <label class="form-label">Список конкурентів (username через кому)</label>
+                        <textarea class="form-control" rows="3" name="competitors" placeholder="competitor1, competitor2, competitor3"></textarea>
+                        <small class="text-muted">Введіть usernames без @</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Зберегти список
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-4">
+    <!-- Notification Settings -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bell"></i> Telegram сповіщення</h5>
+            </div>
+            <div class="card-body">
+                <form id="notificationsForm">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="dailyReports" checked>
+                            <label class="form-check-label" for="dailyReports">
+                                Щоденні звіти
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="weeklyReports" checked>
+                            <label class="form-check-label" for="weeklyReports">
+                                Тижневі звіти
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="aiRecommendations" checked>
+                            <label class="form-check-label" for="aiRecommendations">
+                                AI рекомендації
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="alertsEnabled" checked>
+                            <label class="form-check-label" for="alertsEnabled">
+                                Критичні сповіщення
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Зберегти налаштування
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Management -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-database"></i> Управління даними</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Резервне копіювання</h6>
+                    <p class="text-muted small">Створити резервну копію бази даних</p>
+                    <button class="btn btn-outline-primary" onclick="createBackup()">
+                        <i class="bi bi-download"></i> Створити резервну копію
+                    </button>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h6>Експорт даних</h6>
+                    <p class="text-muted small">Експортувати всі дані в форматі CSV</p>
+                    <div class="btn-group">
+                        <a href="/api/export/posts?period=90d" class="btn btn-outline-success">
+                            <i class="bi bi-file-earmark-text"></i> Публікації
+                        </a>
+                        <a href="/api/export/stats?period=90d" class="btn btn-outline-success">
+                            <i class="bi bi-graph-up"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div>
+                    <h6 class="text-danger">Небезпечна зона</h6>
+                    <p class="text-muted small">Очищення даних - незворотна операція!</p>
+                    <button class="btn btn-outline-danger" onclick="confirmClearData()">
+                        <i class="bi bi-trash"></i> Очистити старі дані
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="successToast" class="toast" role="alert">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">Успішно</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            Налаштування збережено
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Targets Form
+    document.getElementById('targetsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        
+        // Here you would send to API
+        console.log('Saving targets:', data);
+        showSuccessToast();
+    });
+    
+    // Competitors Form
+    document.getElementById('competitorsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const competitors = formData.get('competitors').split(',').map(s => s.trim());
+        
+        console.log('Saving competitors:', competitors);
+        showSuccessToast();
+    });
+    
+    // Notifications Form
+    document.getElementById('notificationsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const settings = {
+            dailyReports: document.getElementById('dailyReports').checked,
+            weeklyReports: document.getElementById('weeklyReports').checked,
+            aiRecommendations: document.getElementById('aiRecommendations').checked,
+            alertsEnabled: document.getElementById('alertsEnabled').checked
+        };
+        
+        console.log('Saving notification settings:', settings);
+        showSuccessToast();
+    });
+    
+    function testConnection() {
+        alert('Функція перевірки з\'єднання - в розробці');
+    }
+    
+    function createBackup() {
+        if (confirm('Створити резервну копію бази даних?')) {
+            alert('Резервна копія створена успішно!\n(Функція в розробці)');
+        }
+    }
+    
+    function confirmClearData() {
+        if (confirm('УВАГА! Це видалить дані старше 90 днів. Продовжити?')) {
+            if (confirm('Ви впевнені? Цю операцію неможливо скасувати!')) {
+                alert('Дані очищено\n(Функція в розробці)');
+            }
+        }
+    }
+    
+    function showSuccessToast() {
+        const toast = new bootstrap.Toast(document.getElementById('successToast'));
+        toast.show();
+    }
+</script>
+{% endblock %}

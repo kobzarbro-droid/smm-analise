@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Публікації - Instagram SMM Аналітика{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold">Публікації</h1>
+        <p class="lead text-muted">Перегляд та аналіз всіх публікацій</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> Помилка: {{ error }}
+</div>
+{% else %}
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <label class="form-label">Період</label>
+        <select class="form-select" id="periodFilter" onchange="changePeriod(this.value)">
+            <option value="7d" {% if period == '7d' %}selected{% endif %}>7 днів</option>
+            <option value="30d" {% if period == '30d' %}selected{% endif %}>30 днів</option>
+            <option value="90d" {% if period == '90d' %}selected{% endif %}>90 днів</option>
+        </select>
+    </div>
+    <div class="col-md-6 text-end">
+        <label class="form-label d-block">&nbsp;</label>
+        <a href="/api/export/posts?period={{ period }}" class="btn btn-success">
+            <i class="bi bi-download"></i> Експорт CSV
+        </a>
+    </div>
+</div>
+
+<!-- Posts Grid -->
+<div class="row g-4 mb-4">
+    {% if posts %}
+        {% for post in posts %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card post-card-full h-100">
+                <div class="position-relative">
+                    {% if post.thumbnail_url %}
+                    <img src="{{ post.thumbnail_url }}" class="card-img-top" alt="Post" style="height: 250px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 250px;">
+                        <i class="bi bi-image fs-1 text-white"></i>
+                    </div>
+                    {% endif %}
+                    <span class="badge bg-dark position-absolute top-0 end-0 m-2">{{ post.media_type }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <span class="badge bg-success">{{ "%.1f"|format(post.engagement_rate) }}% ER</span>
+                        <small class="text-muted float-end">{{ post.posted_at.strftime('%d.%m.%Y') }}</small>
+                    </div>
+                    <p class="card-text small">{{ post.caption[:100] if post.caption else 'Без опису' }}{% if post.caption and post.caption|length > 100 %}...{% endif %}</p>
+                    
+                    <div class="d-flex justify-content-between text-muted small mt-3">
+                        <span title="Лайки">
+                            <i class="bi bi-heart-fill text-danger"></i> {{ post.likes_count }}
+                        </span>
+                        <span title="Коментарі">
+                            <i class="bi bi-chat-fill text-primary"></i> {{ post.comments_count }}
+                        </span>
+                        <span title="Збереження">
+                            <i class="bi bi-bookmark-fill text-warning"></i> {{ post.saves_count }}
+                        </span>
+                        <span title="Охоплення">
+                            <i class="bi bi-eye-fill text-info"></i> {{ post.reach }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> Немає публікацій за обраний період
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if posts %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if not has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page - 1 }}&period={{ period }}">
+                        <i class="bi bi-chevron-left"></i> Попередня
+                    </a>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link">Сторінка {{ page }}</span>
+                </li>
+                <li class="page-item {% if not has_next %}disabled{% endif %}">
+                    <a class="page-link" href="?page={{ page + 1 }}&period={{ period }}">
+                        Наступна <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+            <p class="text-center text-muted">Всього публікацій: {{ total }}</p>
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function changePeriod(period) {
+        window.location.href = `?period=${period}`;
+    }
+</script>
+{% endblock %}

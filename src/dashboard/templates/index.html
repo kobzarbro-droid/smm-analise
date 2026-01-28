@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Головна - Instagram SMM Аналітика{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold">Панель управління</h1>
+        <p class="lead text-muted">Огляд ключових метрик та аналітика Instagram акаунту</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> Помилка: {{ error }}
+</div>
+{% else %}
+
+<!-- Key Metrics Cards -->
+<div class="row g-4 mb-4">
+    <!-- Followers -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted mb-0">Підписники</h6>
+                    <i class="bi bi-people-fill text-primary fs-3"></i>
+                </div>
+                <h2 class="mb-0">{{ metrics.followers.value }}</h2>
+                <div class="mt-2">
+                    <span class="badge {% if metrics.followers.change >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                        <i class="bi bi-arrow-{% if metrics.followers.change >= 0 %}up{% else %}down{% endif %}"></i>
+                        {{ metrics.followers.change_pct }}%
+                    </span>
+                    <small class="text-muted ms-2">за місяць</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Engagement -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted mb-0">Engagement Rate</h6>
+                    <i class="bi bi-heart-fill text-danger fs-3"></i>
+                </div>
+                <h2 class="mb-0">{{ metrics.engagement.value }}</h2>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="bi bi-hand-thumbs-up"></i> {{ metrics.engagement.total_likes | format_number }}
+                        <i class="bi bi-chat ms-2"></i> {{ metrics.engagement.total_comments | format_number }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reach -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted mb-0">Охоплення</h6>
+                    <i class="bi bi-eye-fill text-info fs-3"></i>
+                </div>
+                <h2 class="mb-0">{{ metrics.reach.value }}</h2>
+                <div class="mt-2">
+                    <small class="text-muted">середнє за день</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Posts -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card metric-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-muted mb-0">Публікації</h6>
+                    <i class="bi bi-grid-3x3-gap-fill text-warning fs-3"></i>
+                </div>
+                <h2 class="mb-0">{{ metrics.posts.value }}</h2>
+                <div class="mt-2">
+                    <small class="text-muted">за {{ metrics.posts.period }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Динаміка engagement</h5>
+                <select class="form-select form-select-sm w-auto" id="engagementPeriod">
+                    <option value="7d">7 днів</option>
+                    <option value="30d" selected>30 днів</option>
+                    <option value="90d">90 днів</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <div id="engagementChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> AI рекомендації</h5>
+            </div>
+            <div class="card-body recommendations-list">
+                {% if recommendations %}
+                    {% for rec in recommendations %}
+                    <div class="recommendation-item mb-3 p-3 border rounded">
+                        <span class="badge bg-info mb-2">{{ rec.recommendation_type }}</span>
+                        <p class="mb-1 small">{{ rec.content }}</p>
+                        <small class="text-muted">
+                            <i class="bi bi-star-fill text-warning"></i> Пріоритет: {{ rec.priority }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">Немає рекомендацій</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Posts -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-trophy-fill text-warning"></i> Топ публікації</h5>
+                <a href="{{ url_for('main.posts') }}" class="btn btn-sm btn-primary">Всі публікації</a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for post in top_posts %}
+                    <div class="col-md-4">
+                        <div class="post-card">
+                            {% if post.thumbnail_url %}
+                            <img src="{{ post.thumbnail_url }}" class="post-thumbnail" alt="Post">
+                            {% else %}
+                            <div class="post-thumbnail bg-secondary d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image fs-1 text-white"></i>
+                            </div>
+                            {% endif %}
+                            <div class="post-info p-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge bg-success">{{ post.engagement_rate }}% ER</span>
+                                    <span class="badge bg-secondary">{{ post.media_type }}</span>
+                                </div>
+                                <p class="small text-muted mb-2">{{ post.caption[:80] }}{% if post.caption|length > 80 %}...{% endif %}</p>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span><i class="bi bi-heart-fill text-danger"></i> {{ post.likes_count }}</span>
+                                    <span><i class="bi bi-chat-fill"></i> {{ post.comments_count }}</span>
+                                    <span><i class="bi bi-bookmark-fill"></i> {{ post.saves_count }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Posts -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Останні публікації</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for post in recent_posts %}
+                    <div class="col-md-4 col-lg-2">
+                        <div class="recent-post-card">
+                            {% if post.thumbnail_url %}
+                            <img src="{{ post.thumbnail_url }}" class="img-fluid rounded" alt="Post">
+                            {% else %}
+                            <div class="post-placeholder bg-secondary rounded d-flex align-items-center justify-content-center" style="height: 150px;">
+                                <i class="bi bi-image fs-1 text-white"></i>
+                            </div>
+                            {% endif %}
+                            <div class="mt-2">
+                                <small class="text-muted d-block">{{ post.posted_at.strftime('%d.%m.%Y') }}</small>
+                                <small><i class="bi bi-heart-fill text-danger"></i> {{ post.likes_count }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    // Load engagement chart
+    document.addEventListener('DOMContentLoaded', function() {
+        loadEngagementChart('30d');
+        
+        // Period selector
+        document.getElementById('engagementPeriod').addEventListener('change', function(e) {
+            loadEngagementChart(e.target.value);
+        });
+    });
+    
+    async function loadEngagementChart(period) {
+        showLoading('engagementChart');
+        
+        try {
+            const response = await fetch(`/api/engagement?period=${period}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                showError('engagementChart', data.error);
+                return;
+            }
+            
+            createEngagementChart('engagementChart', data);
+        } catch (error) {
+            showError('engagementChart', 'Помилка завантаження даних');
+            console.error(error);
+        }
+    }
+</script>
+{% endblock %}

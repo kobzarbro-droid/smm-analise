@@ -1,0 +1,39 @@
+# SMM Work Targets Configuration
+
+# Instagram account to monitor
+instagram_account: "username_to_monitor"
+
+# Monthly and daily targets
+targets:
+  posts_per_month: 20
+  stories_per_day: 3
+  reels_per_week: 2
+  min_caption_length: 50
+  hashtags_per_post: 10
+  min_engagement_rate: 3.5  # percentage
+
+# Competitor accounts to analyze
+competitors:
+  - "competitor1_username"
+  - "competitor2_username"
+  - "competitor3_username"
+
+# Content quality settings
+content_quality:
+  min_likes_threshold: 50
+  min_comments_threshold: 5
+  min_saves_threshold: 10
+  
+# Alert thresholds
+alerts:
+  low_engagement_threshold: 2.0  # percentage
+  missed_daily_story_alert: True
+  missed_weekly_reel_alert: True
+  
+# AI Analysis settings
+ai_analysis:
+  enabled: True
+  analyze_captions: True
+  analyze_hashtags: True
+  generate_recommendations: True
+  language: "uk"  # Ukrainian
