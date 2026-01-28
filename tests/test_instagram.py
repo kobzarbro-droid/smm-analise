@@ -32,8 +32,12 @@ def test_instagram_client_media_to_dict():
     mock_media.like_count = 10
     mock_media.comment_count = 2
     mock_media.view_count = None
+    mock_media.play_count = None
+    mock_media.product_type = ''
     mock_media.thumbnail_url = 'http://example.com/thumb.jpg'
     mock_media.video_url = None
+    mock_media.reshare_count = 0
+    mock_media.video_duration = 0
     
     result = client._media_to_dict(mock_media)
     
