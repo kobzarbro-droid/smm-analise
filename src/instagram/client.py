@@ -36,12 +36,12 @@ def _patch_forbidden_methods(client: Client):
     
     for method_name in forbidden_methods:
         if hasattr(client, method_name):
+            # Create a closure that captures the current method_name
+            def make_forbidden(name):
+                return lambda *args, **kwargs: _forbidden_method_warning(name)
+            
             # Replace method with a warning function
-            setattr(
-                client,
-                method_name,
-                lambda *args, **kwargs: _forbidden_method_warning(method_name)
-            )
+            setattr(client, method_name, make_forbidden(method_name))
     
     logger.info("Patched forbidden public API methods with warnings")
 

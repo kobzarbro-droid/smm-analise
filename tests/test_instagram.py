@@ -45,3 +45,16 @@ def test_instagram_client_media_to_dict():
     assert result['post_id'] == '123456'
     assert result['media_type'] == 'photo'
     assert '#test' in result['hashtags']
+
+
+def test_forbidden_methods_blocked():
+    """Test that forbidden public API methods are blocked."""
+    client = InstagramClient(username='test', password='test')
+    
+    # Test that forbidden methods raise RuntimeError
+    with pytest.raises(RuntimeError, match="FORBIDDEN.*user_info_by_username"):
+        client.client.user_info_by_username('test')
+    
+    # Verify the method exists but is patched
+    assert hasattr(client.client, 'user_info_by_username')
+
