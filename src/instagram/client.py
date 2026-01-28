@@ -12,6 +12,40 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def _forbidden_method_warning(method_name: str):
+    """Raise exception for forbidden public API methods."""
+    error_msg = (
+        f"FORBIDDEN: {method_name} is a PUBLIC API method and should NOT be used!\n"
+        f"Use ONLY Private API V1 methods:\n"
+        f"  - user_id_from_username(username) to get user_id\n"
+        f"  - user_info_v1(user_id) to get user info\n"
+        f"  - user_medias_v1(user_id, amount) to get posts\n"
+        f"  - user_stories_v1(user_id) to get stories\n"
+    )
+    logger.error(error_msg)
+    raise RuntimeError(error_msg)
+
+
+def _patch_forbidden_methods(client: Client):
+    """Patch forbidden public API methods to raise errors when called."""
+    forbidden_methods = [
+        'user_info_by_username',
+        'user_info_by_username_gql',
+        'user_info_by_username_v1',  # Keep blocked per requirements: use user_id_from_username + user_info_v1
+    ]
+    
+    for method_name in forbidden_methods:
+        if hasattr(client, method_name):
+            # Create a closure that captures the current method_name
+            def make_forbidden(name):
+                return lambda *args, **kwargs: _forbidden_method_warning(name)
+            
+            # Replace method with a warning function
+            setattr(client, method_name, make_forbidden(method_name))
+    
+    logger.info("Patched forbidden public API methods with warnings")
+
+
 def retry_on_error(max_retries=3, delay=2, backoff=2):
     """Decorator for retrying on errors with rate limit handling."""
     def decorator(func):
@@ -61,6 +95,10 @@ class InstagramClient:
         """
         self.client = Client()
         self.client.delay_range = [1, 3]  # Delay between requests
+        
+        # Patch forbidden public API methods
+        _patch_forbidden_methods(self.client)
+        
         self.auth = InstagramAuth(username, password)
         self.user_id = None
         self.username = username or settings.INSTAGRAM_USERNAME
@@ -93,7 +131,7 @@ class InstagramClient:
     
     def login(self, force_login: bool = False) -> bool:
         """
-        Login to Instagram.
+        Login to Instagram - ONLY V1 Private API.
         
         Args:
             force_login: Force fresh login
@@ -108,11 +146,16 @@ class InstagramClient:
                 self._use_alternative_api()
                 logger.info("Switched to private API mode")
                 
-                user_info = self.client.user_info_by_username(self.username)
-                self.user_id = user_info.pk
-                logger.info(f"User ID: {self.user_id}")
+                # Use ONLY V1 Private API methods
+                user_id = self.client.user_id_from_username(self.username)
+                self.user_id = user_id
+                logger.info(f"User ID found: {self.user_id}")
+                
+                # Verify with user_info_v1
+                user_info = self.client.user_info_v1(user_id)
+                logger.info(f"User info_v1 returned actual user data for @{user_info.username}")
             except Exception as e:
-                logger.error(f"Failed to get user info: {e}")
+                logger.error(f"Failed to get user info via V1 API: {e}")
                 return False
         return success
     
@@ -128,19 +171,13 @@ class InstagramClient:
         """
         try:
             target_username = username or self.username
-            user_id = None
             
-            # Use ONLY V1 API
-            try:
-                user_id = self.get_user_id(target_username)
-                user = self.client.user_info_v1(user_id)
-            except Exception as e:
-                if user_id:
-                    logger.warning(f"V1 API failed, trying user_info: {e}")
-                    # Fallback to standard method
-                    user = self.client.user_info(user_id)
-                else:
-                    raise
+            # Use ONLY V1 Private API - NO fallbacks to public API
+            user_id = self.get_user_id(target_username)
+            logger.info(f"user_id found: {user_id}")
+            
+            user = self.client.user_info_v1(user_id)
+            logger.info(f"user_info_v1 returned actual user data for @{user.username}")
             
             return {
                 'user_id': user.pk,
@@ -155,7 +192,7 @@ class InstagramClient:
                 'profile_pic_url': user.profile_pic_url,
             }
         except Exception as e:
-            logger.error(f"Failed to get user info for {username}: {e}")
+            logger.error(f"Failed to get user info via V1 API for {username}: {e}")
             return None
     
     @retry_on_error(max_retries=3, delay=2)
@@ -242,13 +279,9 @@ class InstagramClient:
             
             logger.info(f"Fetching stories for @{target_username}...")
             
-            # Use ONLY V1 method
-            try:
-                stories = self.client.user_stories_v1(user_id)
-            except Exception as e:
-                logger.warning(f"V1 stories failed: {e}, trying alternative")
-                # Fallback to standard method
-                stories = self.client.user_stories(user_id)
+            # Use ONLY V1 Private API method - NO fallbacks
+            stories = self.client.user_stories_v1(user_id)
+            logger.info(f"Retrieved {len(stories)} stories via V1 API for @{target_username}")
             
             story_list = []
             for story in stories:
@@ -260,11 +293,11 @@ class InstagramClient:
                     logger.warning(f"Skipped story due to validation error: {e}")
                     continue
             
-            logger.info(f"Retrieved {len(story_list)} stories for @{target_username}")
+            logger.info(f"Successfully collected stories via V1 only (0 public calls)")
             return story_list
             
         except Exception as e:
-            logger.error(f"Failed to get stories for {username}: {e}")
+            logger.error(f"Failed to get stories via V1 API for {username}: {e}")
             return []
     
     @retry_on_error(max_retries=3, delay=2)
