@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Main monitoring service
+  monitor:
+    build: .
+    container_name: smm_monitor
+    command: python main.py
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./config/.env:/app/config/.env:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - smm-network
+
+  # Web dashboard service
+  dashboard:
+    build: .
+    container_name: smm_dashboard
+    command: python run_dashboard.py
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config/.env:/app/config/.env:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=5000
+    restart: unless-stopped
+    networks:
+      - smm-network
+    depends_on:
+      - monitor
+
+networks:
+  smm-network:
+    driver: bridge
+
+volumes:
+  data:
+  logs:
+  backups:
