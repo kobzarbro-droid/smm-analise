@@ -27,11 +27,11 @@ def _forbidden_method_warning(method_name: str):
 
 
 def _patch_forbidden_methods(client: Client):
-    """Patch forbidden public API methods to raise warnings."""
+    """Patch forbidden public API methods to raise errors when called."""
     forbidden_methods = [
         'user_info_by_username',
         'user_info_by_username_gql',
-        'user_info_by_username_v1',  # Just in case
+        'user_info_by_username_v1',  # Keep blocked per requirements: use user_id_from_username + user_info_v1
     ]
     
     for method_name in forbidden_methods:
