@@ -58,24 +58,29 @@ class InstagramClient:
         self._user_id_cache = {}  # Cache for user IDs
     
     def _use_alternative_api(self):
-        """Перемкнутися на альтернативне API"""
-        # Використовувати лише приватне API (V1)
+        """Switch to alternative API mode"""
+        # Use only private API (V1)
         self.client.private_requests = True
         
-        # Відключити публічні GraphQL запити
+        # Disable public GraphQL requests
         try:
             self.client.use_public_api = False
-        except:
+        except AttributeError:
+            # Attribute doesn't exist in this version
             pass
     
     def get_user_id(self, username: str) -> int:
-        """Отримати user ID з кешем"""
+        """Get user ID with caching"""
         if username in self._user_id_cache:
             return self._user_id_cache[username]
         
-        user_id = self.client.user_id_from_username(username)
-        self._user_id_cache[username] = user_id
-        return user_id
+        try:
+            user_id = self.client.user_id_from_username(username)
+            self._user_id_cache[username] = user_id
+            return user_id
+        except Exception as e:
+            logger.error(f"Failed to get user_id for {username}: {e}")
+            raise
     
     def login(self, force_login: bool = False) -> bool:
         """
@@ -90,7 +95,7 @@ class InstagramClient:
         success = self.auth.login(self.client, force_login)
         if success:
             try:
-                # Після успішного логіну перемикаємося на приватне API
+                # After successful login, switch to private API
                 self._use_alternative_api()
                 logger.info("Switched to private API mode")
                 
@@ -115,18 +120,18 @@ class InstagramClient:
         try:
             target_username = username or self.username
             
-            # Спочатку пробуємо через V1 API (більш стабільний)
+            # Try V1 API first (more stable)
             try:
                 user_id = self.get_user_id(target_username)
                 user = self.client.user_info(user_id)
             except Exception as e:
                 logger.warning(f"Failed to get user info via V1, trying alternative: {e}")
                 try:
-                    # Fallback на публічний метод без авторизації
+                    # Fallback to public method without authorization
                     user = self.client.user_info_by_username_v1(target_username)
                 except Exception as e2:
                     logger.error(f"All methods failed to get user info: {e2}")
-                    # Останній fallback - базовий метод
+                    # Last fallback - basic method
                     user = self.client.user_info_by_username(target_username)
             
             return {
@@ -165,29 +170,22 @@ class InstagramClient:
             target_username = username or self.username
             user_id = self.get_user_id(target_username)
             
-            # Спочатку пробуємо V1 API
+            # Try V1 API first
             try:
                 medias = self.client.user_medias_v1(user_id, amount)
                 logger.info(f"Retrieved {len(medias)} posts via V1 API for @{target_username}")
             except Exception as e:
                 logger.warning(f"V1 API failed: {e}, trying paginated method")
                 
-                # Альтернативний метод - збір по сторінках
+                # Alternative method - collect by pages
                 try:
-                    # Використовуємо метод з меншою кількістю полів
+                    # Use method with fewer fields
                     medias = self.client.user_medias(user_id, amount)
                     logger.info(f"Retrieved {len(medias)} posts via paginated method for @{target_username}")
                 except Exception as e2:
                     logger.error(f"All media fetch methods failed: {e2}")
-                    
-                    # Останній fallback - збираємо що можемо
-                    try:
-                        # Пробуємо отримати лише базову інформацію
-                        medias = self._get_basic_medias(user_id, amount)
-                        logger.info(f"Retrieved {len(medias)} posts via basic method for @{target_username}")
-                    except Exception as e3:
-                        logger.error(f"Even basic media fetch failed: {e3}")
-                        return []
+                    # No further fallback - return empty list
+                    return []
             
             posts = []
             for media in medias:
@@ -221,19 +219,6 @@ class InstagramClient:
         except Exception as e:
             logger.error(f"Failed to get post {post_id}: {e}")
             return None
-    
-    def _get_basic_medias(self, user_id: int, amount: int) -> List:
-        """Резервний метод отримання медіа з мінімальними даними"""
-        try:
-            # Використовуємо публічний API без авторизації
-            # Це резервний метод, який може не працювати у всіх випадках
-            medias = []
-            logger.warning(f"Using basic media fetch for user_id {user_id}")
-            # Спроба отримати медіа через стандартний метод без додаткових полів
-            return medias
-        except Exception as e:
-            logger.error(f"Basic media fetch failed: {e}")
-            return []
     
     @retry_on_error(max_retries=3, delay=2)
     def get_user_stories(self, username: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -303,14 +288,14 @@ class InstagramClient:
             return []
     
     def _is_reel(self, media) -> bool:
-        """Перевірити чи це рил"""
+        """Check if media is a reel"""
         try:
             return (hasattr(media, 'product_type') and 
                     media.product_type == 'clips') or \
                    (hasattr(media, 'media_type') and 
                     media.media_type == 2 and 
                     hasattr(media, 'clips_metadata'))
-        except:
+        except Exception:
             return False
     
     def get_post_insights(self, post_id: str) -> Optional[Dict[str, Any]]:
