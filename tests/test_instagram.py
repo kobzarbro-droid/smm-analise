@@ -20,6 +20,7 @@ def test_instagram_client_init():
 
 def test_instagram_client_media_to_dict():
     """Test converting media to dictionary."""
+    from datetime import datetime
     client = InstagramClient(username='test', password='test')
     
     # Create mock media
@@ -27,7 +28,7 @@ def test_instagram_client_media_to_dict():
     mock_media.pk = '123456'
     mock_media.media_type = 1  # photo
     mock_media.caption_text = 'Test caption #test'
-    mock_media.taken_at = pytest.lazy_fixture
+    mock_media.taken_at = datetime.now()
     mock_media.like_count = 10
     mock_media.comment_count = 2
     mock_media.view_count = None
