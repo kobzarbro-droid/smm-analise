@@ -140,11 +140,15 @@ class TestTelegramBot(unittest.TestCase):
     
     def test_bot_requires_credentials(self):
         """Test bot requires token and chat_id."""
-        with self.assertRaises(ValueError):
+        # Test empty token raises ValueError
+        with self.assertRaises(ValueError) as ctx:
             TelegramBot(token='', chat_id='test_chat')
+        self.assertIn('TELEGRAM_BOT_TOKEN', str(ctx.exception))
         
-        with self.assertRaises(ValueError):
+        # Test empty chat_id raises ValueError
+        with self.assertRaises(ValueError) as ctx:
             TelegramBot(token='test_token', chat_id='')
+        self.assertIn('TELEGRAM_CHAT_ID', str(ctx.exception))
 
 
 if __name__ == '__main__':
